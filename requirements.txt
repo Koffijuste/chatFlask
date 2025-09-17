@@ -6,3 +6,4 @@ Flask-WTF
 gunicorn
 eventlet
 Werkzeug
+python-dotenv
