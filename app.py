@@ -1,4 +1,4 @@
-# app.py
+# app.py — VERSION CORRIGÉE POUR RENDER + POSTGRESQL
 import os
 import uuid
 import sqlite3
@@ -12,7 +12,7 @@ from werkzeug.utils import secure_filename
 from flask_wtf.csrf import CSRFProtect, validate_csrf
 from wtforms import ValidationError
 
-# 👇 Force SQLite en mode thread-safe (nécessaire pour Gunicorn/Eventlet)
+# 👇 Force SQLite en mode thread-safe AVANT SQLAlchemy
 sqlite3.threadsafety = 3
 
 app = Flask(__name__)
@@ -34,7 +34,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = database_url or 'sqlite:///chat.db'
 if database_url and database_url.startswith("postgresql://"):
     app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
         "pool_pre_ping": True,
-        # Pas de "check_same_thread" pour PostgreSQL !
+        # PAS de "check_same_thread" pour PostgreSQL → CRASH sinon
     }
 else:
     app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
@@ -84,7 +84,7 @@ def login():
 
     return render_template('login.html')
 
-@app.route('/register', methods=['GET', 'POST'])  # ← Corrigé : /register
+@app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
         username = request.form['username'].strip()
@@ -204,7 +204,7 @@ def index():
     messages.reverse()
     return render_template('index.html', messages=messages)
 
-@app.route('/profile', methods=['GET', 'POST'])  # ← Corrigé : /profile
+@app.route('/profile', methods=['GET', 'POST'])
 @login_required
 def profile():
     if request.method == 'POST':
@@ -234,7 +234,7 @@ def unauthorized():
     flash('🔒 Veuillez vous connecter pour accéder à cette page.', 'warning')
     return redirect(url_for('login'))
 
-@app.route('/stats')  # ← Corrigé : /stats
+@app.route('/stats')
 @login_required
 def stats():
     from sqlalchemy import func
