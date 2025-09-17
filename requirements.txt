@@ -7,3 +7,4 @@ gunicorn
 eventlet
 Werkzeug
 python-dotenv
+psycopg2-binary
