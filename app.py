@@ -1,5 +1,9 @@
 # app.py
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
+import os
+import uuid
+import sqlite3
+
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_socketio import SocketIO, emit
 from models import db, User, Message
@@ -7,32 +11,38 @@ from werkzeug.security import check_password_hash
 from werkzeug.utils import secure_filename
 from flask_wtf.csrf import CSRFProtect, validate_csrf
 from wtforms import ValidationError
-import os
-import uuid
-import sqlite3
-from dotenv import load_dotenv
 
+# 👇 Force SQLite en mode thread-safe (nécessaire pour Gunicorn/Eventlet)
+sqlite3.threadsafety = 3
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    "pool_pre_ping": True,
-    "connect_args": {
-        "check_same_thread": False
-    }
-}
 app.config['SECRET_KEY'] = 'super-secret-chat-key-2025!'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['UPLOAD_FOLDER'] = 'static/uploads/avatars'
+
+# Créer le dossier uploads si nécessaire
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+# Récupérer DATABASE_URL depuis l'environnement
 database_url = os.environ.get('DATABASE_URL')
 if database_url and database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url or 'sqlite:///chat.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['UPLOAD_FOLDER'] = 'static/uploads/avatars'
-app.config['DEBUG'] = True
 
-load_dotenv()
-# Créer le dossier uploads si nécessaire
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+# 👇 Configurer les options du moteur SQL en fonction du type de base
+if database_url and database_url.startswith("postgresql://"):
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        "pool_pre_ping": True,
+        # Pas de "check_same_thread" pour PostgreSQL !
+    }
+else:
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        "pool_pre_ping": True,
+        "connect_args": {
+            "check_same_thread": False  # Seulement pour SQLite
+        }
+    }
 
 # ✅ Initialiser la protection CSRF
 csrf = CSRFProtect(app)
@@ -43,14 +53,14 @@ socketio = SocketIO(app)
 
 # 🔑 Initialiser Flask-Login
 login_manager = LoginManager()
-login_manager.login_view = 'login'  # Redirige ici si non connecté
+login_manager.login_view = 'login'
 login_manager.init_app(app)
 
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# Liste des utilisateurs connectés (pour le compteur en ligne)
+# Liste des utilisateurs connectés
 connected_users = {}
 
 with app.app_context():
@@ -66,7 +76,7 @@ def login():
 
         user = User.query.filter_by(username=username).first()
         if user and user.check_password(password):
-            login_user(user)  # ← Flask-Login prend le relais
+            login_user(user)
             flash('✅ Connexion réussie !', 'success')
             return redirect(url_for('index'))
         else:
@@ -74,7 +84,7 @@ def login():
 
     return render_template('login.html')
 
-@app.route('/students/register', methods=['GET', 'POST'])
+@app.route('/register', methods=['GET', 'POST'])  # ← Corrigé : /register
 def register():
     if request.method == 'POST':
         username = request.form['username'].strip()
@@ -107,26 +117,20 @@ def logout():
         del connected_users[user_id]
         socketio.emit('user_count', len(connected_users))
 
-    logout_user()  # ← Flask-Login gère la déconnexion
+    logout_user()
     flash('👋 Vous êtes déconnecté.', 'info')
     return redirect(url_for('login'))
-
 
 @app.route('/admin')
 @login_required
 def admin():
-    # Vérifier si l'utilisateur est admin (id = 1 pour l'instant)
     if current_user.id != 1:
         flash('🚫 Accès refusé. Réservé à l’administrateur.', 'danger')
         return redirect(url_for('index'))
 
-    # Récupérer tous les utilisateurs
     users = User.query.order_by(User.id).all()
-
-    # Récupérer tous les messages (publics + privés)
     messages = Message.query.order_by(Message.timestamp.desc()).limit(100).all()
 
-    # Stats
     total_users = User.query.count()
     total_messages = Message.query.count()
     total_private_messages = Message.query.filter_by(is_private=True).count()
@@ -140,7 +144,6 @@ def admin():
         total_private_messages=total_private_messages
     )
 
-
 @app.route('/admin/delete_user/<int:user_id>', methods=['POST'])
 @login_required
 def delete_user(user_id):
@@ -150,7 +153,6 @@ def delete_user(user_id):
     if user_id == 1:
         return jsonify({'success': False, 'error': 'Impossible de supprimer l’admin'}), 400
 
-    # ✅ Vérifier le token CSRF
     try:
         token = request.headers.get('X-CSRFToken') or request.form.get('csrf_token')
         if not token:
@@ -178,7 +180,6 @@ def admin_delete_message(message_id):
     if current_user.id != 1:
         return jsonify({'success': False, 'error': 'Accès refusé'}), 403
 
-    # ✅ Vérifier le token CSRF
     try:
         token = request.headers.get('X-CSRFToken') or request.form.get('csrf_token')
         if not token:
@@ -196,15 +197,14 @@ def admin_delete_message(message_id):
 
     return jsonify({'success': True})
 
-
 @app.route('/')
-@login_required  # ← Protège la route !
+@login_required
 def index():
     messages = Message.query.order_by(Message.timestamp.desc()).limit(50).all()
     messages.reverse()
     return render_template('index.html', messages=messages)
 
-@app.route('/student-profile', methods=['GET', 'POST'])
+@app.route('/profile', methods=['GET', 'POST'])  # ← Corrigé : /profile
 @login_required
 def profile():
     if request.method == 'POST':
@@ -229,39 +229,33 @@ def profile():
 
     return render_template('profile.html', user=current_user)
 
-
 @login_manager.unauthorized_handler
 def unauthorized():
     flash('🔒 Veuillez vous connecter pour accéder à cette page.', 'warning')
     return redirect(url_for('login'))
 
-@app.route('/student/stats')
+@app.route('/stats')  # ← Corrigé : /stats
 @login_required
 def stats():
     from sqlalchemy import func
 
-    # Messages par jour (7 derniers jours)
     week_stats = db.session.query(
         func.strftime('%Y-%m-%d', Message.timestamp).label('day'),
         func.count(Message.id).label('count')
     ).group_by('day').order_by('day').limit(7).all()
 
-    # Utilisateur le plus actif (celui qui a ENVOYÉ le plus de messages)
     top_user = db.session.query(
         User.username,
         func.count(Message.id).label('msg_count')
     ).join(
-        Message, Message.user_id == User.id  # ← FIX : explicite la jointure
+        Message, Message.user_id == User.id
     ).group_by(
         User.id
     ).order_by(
         func.count(Message.id).desc()
     ).first()
 
-    # Nombre total de messages
     total_messages = Message.query.count()
-
-    # Nombre d'utilisateurs
     total_users = User.query.count()
 
     return render_template('stats.html',
@@ -281,7 +275,7 @@ def handle_connect():
             'avatar': current_user.avatar
         }
         emit('user_count', len(connected_users))
-        emit('update_online_users', get_online_users())  # ← Nouveau
+        emit('update_online_users', get_online_users())
 
 def get_online_users():
     return [
@@ -312,7 +306,6 @@ def handle_message(data):
     if not message_text:
         return
 
-    # Créer le message
     new_message = Message(
         username=current_user.username,
         message=message_text,
@@ -326,13 +319,11 @@ def handle_message(data):
     message_data = new_message.to_dict()
 
     if is_private and recipient_id:
-        # Envoyer uniquement à l'expéditeur et au destinataire
         recipient = connected_users.get(recipient_id)
         if recipient:
             emit('receive_message', message_data, room=recipient['sid'])
-        emit('receive_message', message_data, room=request.sid)  # Aussi à l'expéditeur
+        emit('receive_message', message_data, room=request.sid)
     else:
-        # Diffusion publique
         emit('receive_message', message_data, broadcast=True)
 
 @socketio.on('delete_message')
@@ -343,7 +334,7 @@ def handle_delete_message(data):
     message_id = data.get('message_id')
     message = Message.query.get(message_id)
 
-    if message and (message.user_id == current_user.id or current_user.id == 1):  # admin = id 1
+    if message and (message.user_id == current_user.id or current_user.id == 1):
         db.session.delete(message)
         db.session.commit()
         emit('message_deleted', {'message_id': message_id}, broadcast=True)
@@ -351,4 +342,4 @@ def handle_delete_message(data):
 # ============= LANCEMENT =============
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    socketio.run(app, host='0.0.0.0', port=port, debug=False)  # ← debug=False en production !
+    socketio.run(app, host='0.0.0.0', port=port, debug=False)
