@@ -9,8 +9,15 @@ from flask_wtf.csrf import CSRFProtect, validate_csrf
 from wtforms import ValidationError
 import os
 import uuid
+import sqlite3
 
 app = Flask(__name__)
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    "pool_pre_ping": True,
+    "connect_args": {
+        "check_same_thread": False
+    }
+}
 app.config['SECRET_KEY'] = 'super-secret-chat-key-2025!'
 database_url = os.environ.get('DATABASE_URL')
 if database_url and database_url.startswith("postgres://"):
