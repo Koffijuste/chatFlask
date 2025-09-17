@@ -10,6 +10,8 @@ from wtforms import ValidationError
 import os
 import uuid
 import sqlite3
+from dotenv import load_dotenv
+
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
@@ -26,7 +28,9 @@ if database_url and database_url.startswith("postgres://"):
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url or 'sqlite:///chat.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'static/uploads/avatars'
+app.config['DEBUG'] = True
 
+load_dotenv()
 # Créer le dossier uploads si nécessaire
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
