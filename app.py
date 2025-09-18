@@ -21,9 +21,9 @@ app.config['SQLALCHEMY_DATABASE_URI'] = database_url or 'sqlite:///chat.db'
 if "postgresql" in (database_url or ""):
     app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
         "pool_pre_ping": True,
-        "pool_size": 5,
-        "max_overflow": 10,
-        "pool_recycle": 300,
+        "pool_size": 10,
+        "max_overflow": 20,
+        "pool_recycle": 1800,
     }
 
 db.init_app(app)
