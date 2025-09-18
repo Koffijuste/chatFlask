@@ -93,12 +93,13 @@ def login():
             if user and check_password_hash(user.password_hash, password):
                 login_user(user)
                 flash('✅ Connexion réussie !', 'success')
-                return redirect(url_for('index'))
+                return redirect(url_for('index'))  # ← ICI : 'index', pas 'home'
             else:
                 flash('❌ Mauvais login.', 'danger')
         except Exception as e:
             flash('❌ Erreur serveur. Réessayez.', 'danger')
             print(f"Erreur login : {e}")
+            return redirect(url_for('index'))  # ← ICI aussi
     return render_template('login.html')
 
 @app.route('/register', methods=['GET', 'POST'])
