@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat • ChatApp</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Favicon & PWA Icons -->
+<link rel="apple-touch-icon" sizes="57x57" href="{{ url_for('static', filename='favicon/apple-icon-57x57.png') }}">
+<link rel="apple-touch-icon" sizes="60x60" href="{{ url_for('static', filename='favicon/apple-icon-60x60.png') }}">
+<link rel="apple-touch-icon" sizes="72x72" href="{{ url_for('static', filename='favicon/apple-icon-72x72.png') }}">
+<link rel="apple-touch-icon" sizes="76x76" href="{{ url_for('static', filename='favicon/apple-icon-76x76.png') }}">
+<link rel="apple-touch-icon" sizes="114x114" href="{{ url_for('static', filename='favicon/apple-icon-114x114.png') }}">
+<link rel="apple-touch-icon" sizes="120x120" href="{{ url_for('static', filename='favicon/apple-icon-120x120.png') }}">
+<link rel="apple-touch-icon" sizes="144x144" href="{{ url_for('static', filename='favicon/apple-icon-144x144.png') }}">
+<link rel="apple-touch-icon" sizes="152x152" href="{{ url_for('static', filename='favicon/apple-icon-152x152.png') }}">
+<link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='favicon/apple-icon-180x180.png') }}">
+<link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='favicon/android-icon-192x192.png') }}">
+<link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon/favicon-32x32.png') }}">
+<link rel="icon" type="image/png" sizes="96x96" href="{{ url_for('static', filename='favicon/favicon-96x96.png') }}">
+<link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='favicon/favicon-16x16.png') }}">
+<link rel="manifest" href="{{ url_for('static', filename='favicon/manifest.json') }}">
+<link rel="shortcut icon" href="{{ url_for('static', filename='favicon/favicon.ico') }}" type="image/x-icon">
+<meta name="msapplication-TileColor" content="#ffffff">
+<meta name="msapplication-TileImage" content="{{ url_for('static', filename='favicon/ms-icon-144x144.png') }}">
+<meta name="theme-color" content="#ffffff">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22 fill=%22%234361ee%22>💬</text></svg>">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div style="background: white; padding: 15px; border-radius: 10px; margin-bottom: 30px; display: flex; align-items: center; gap: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                <img src="{{ current_user.avatar }}" alt="Avatar" style="width: 50px; height: 50px; border-radius: 50%;">
+                <div>
+                    <div><strong>{{ current_user.username }}</strong></div>
+                    <div style="font-size: 0.9rem; color: #666;">Connecté(e) — Consulte les stats du chat</div>
+                </div>
+            </div>
+            <h1>💬 ChatApp</h1>
+            <nav>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <img src="{{ current_user.avatar }}" alt="Avatar" style="width: 30px; height: 30px; border-radius: 50%; object-fit: cover;">
+                    <span>Bonjour, <strong>{{ current_user.username }}</strong> !</span>
+                </div>
+                <a href="{{ url_for('profile') }}" style="margin-left: 20px;">🖼️ Profil</a>
+                <a href="{{ url_for('stats') }}" style="margin-left: 20px;">📊 Stats</a>
+                <a href="{{ url_for('logout') }}" style="margin-left: 20px; color: #f72585;">🚪 Déconnexion</a>
+                {% if current_user.id == 1 %}
+                    <a href="{{ url_for('admin') }}" style="color: #f72585; font-weight: 600;">👑 Admin</a>
+                {% endif %}
+                <button id="theme-toggle" style="background: none; border: none; cursor: pointer; margin-left: 20px;">🌙</button>
+            </nav>
+        </div>
+        <div id="chat-header">
+            <span>Messages en temps réel</span>
+            <input type="text" id="search-input" placeholder="🔍 Rechercher..." style="padding: 6px 10px; border-radius: 20px; border: 1px solid #ccc; font-size: 0.9rem; width: 200px;">
+            <span id="user-count">👥 <span id="count">0</span> en ligne</span>
+        </div>
+    </header>
+
+    <div class="container">
+        <div id="chat-container">
+            <div id="chat-header">
+                <span>Messages en temps réel</span>
+                <span id="user-count">👥 1</span>
+            </div>
+            <div id="chat-messages">
+                {% for msg in messages %}
+                    <div class="message">
+                        <div class="meta">
+                            <span class="username">{{ msg.username }}</span>
+                            <span class="time">{{ msg.timestamp }}</span>
+                        </div>
+                        <div class="text">{{ msg.message }}</div>
+                    </div>
+                {% endfor %}
+            </div>
+            <div id="reply-bar" style="display: none;"></div>
+            <div id="chat-form">
+                <input type="text" id="message" placeholder="Tapez votre message..." autocomplete="off">
+                <button onclick="sendMessage()">➤</button>
+            </div>
+        </div>
+    </div>
+
+    {% if current_user.is_authenticated %}
+    <script>
+        const socket = io();
+        const userId = {{ current_user.id if current_user.is_authenticated else 'null' }};
+        const isAdmin = userId === 1;
+
+        function sendMessage() {
+            const messageInput = document.getElementById('message');
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            socket.emit('send_message', { message });
+            messageInput.value = '';
+        }
+
+        function deleteMessage(messageId) {
+            if (confirm("Voulez-vous vraiment supprimer ce message ?")) {
+                socket.emit('delete_message', { message_id: messageId });
+            }
+        }
+
+        socket.on('receive_message', function(data) {
+            const messagesDiv = document.getElementById('chat-messages');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'message';
+            msgDiv.setAttribute('data-message-id', data.user_id); // pour suppression future
+
+            msgDiv.innerHTML = `
+                <div class="meta">
+                    <div>
+                        <img src="${data.avatar}" class="avatar" alt="avatar">
+                        <span class="username">${data.username}</span>
+                    </div>
+                    <span class="time">${data.timestamp}</span>
+                </div>
+                <div class="text">${data.message}</div>
+                ${userId === data.user_id || isAdmin ? 
+                    '<button class="delete-btn" onclick="deleteMessage(' + data.user_id + ')">🗑️</button>' 
+                    : ''}
+            `;
+            messagesDiv.appendChild(msgDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        });
+
+        socket.on('message_deleted', function(data) {
+            const msgDiv = document.querySelector(`.message[data-message-id="${data.message_id}"]`);
+            if (msgDiv) msgDiv.remove();
+        });
+
+        socket.on('user_count', function(count) {
+            document.getElementById('count').innerText = count;
+        });
+
+        document.getElementById('message').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') sendMessage();
+        });
+    </script>
+{% endif %}
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="{{url_for('static', filename='js/index.js')}}"></script>
+</body>
+</html>

@@ -65,13 +65,16 @@ with app.app_context():
 # ============= ROUTES =============
 
 @app.route('/')
-def home():
+@login_required
+def index():
     try:
-        if current_user.is_authenticated:
-            return redirect(url_for('index'))
-    except:
-        pass
-    return render_template('home.html')
+        messages = Message.query.order_by(Message.timestamp.desc()).limit(50).all()
+        messages.reverse()
+        return render_template('index.html', messages=messages, user=current_user)
+    except Exception as e:
+        flash('❌ Erreur lors du chargement des messages.', 'danger')
+        print(f"Erreur index : {e}")
+        return redirect(url_for('home'))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -164,6 +167,35 @@ def get_online_users():
         for uid, user in connected_users.items()
     ]
 
+@socketio.on('send_message')
+def handle_message(data):
+    if not current_user.is_authenticated:
+        return
+
+    message_text = data.get('message', '').strip()
+    if not message_text:
+        return
+
+    new_message = Message(
+        username=current_user.username,
+        message=message_text,
+        user_id=current_user.id,
+        is_private=False
+    )
+    db.session.add(new_message)
+    db.session.commit()
+
+    message_data = {
+        'id': new_message.id,
+        'username': new_message.username,
+        'message': new_message.message,
+        'timestamp': new_message.timestamp.strftime('%H:%M:%S'),
+        'user_id': new_message.user_id
+    }
+
+    emit('receive_message', message_data, broadcast=True)
+
+    
 @socketio.on('disconnect')
 def handle_disconnect():
     if current_user.is_authenticated and current_user.id in connected_users:
