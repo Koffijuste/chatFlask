@@ -74,7 +74,7 @@ def index():
     except Exception as e:
         flash('❌ Erreur lors du chargement des messages.', 'danger')
         print(f"Erreur index : {e}")
-        return redirect(url_for('home'))
+        return render_template('home.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -124,6 +124,11 @@ def register():
 
     return render_template('register.html')
 
+@app.route('/profile')
+@login_required
+def profile():
+    return render_template('profile.html', user=current_user)
+
 @app.route('/logout')
 @login_required
 def logout():
@@ -133,12 +138,12 @@ def logout():
         socketio.emit('user_count', len(connected_users))
     logout_user()
     flash('👋 Déconnecté.', 'info')
-    return redirect(url_for('home'))
+    return redirect(url_for('login'))
 
 # Gestionnaires d'erreurs
 @app.errorhandler(404)
 def not_found(e):
-    return render_template('404.html'), 400
+    return render_template('404.html'), 404
 
 @app.errorhandler(500)
 def server_error(e):
@@ -195,7 +200,7 @@ def handle_message(data):
 
     emit('receive_message', message_data, broadcast=True)
 
-    
+
 @socketio.on('disconnect')
 def handle_disconnect():
     if current_user.is_authenticated and current_user.id in connected_users:
