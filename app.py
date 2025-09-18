@@ -108,6 +108,16 @@ def register():
 
     return render_template('register.html')
 
+@app.route('/')
+def home():
+    try:
+        if current_user.is_authenticated:
+            return redirect(url_for('index'))
+    except:
+        pass  # Ignore toute erreur liée à current_user
+    return render_template('home.html')
+
+
 @app.route('/logout')
 @login_required
 def logout():
@@ -196,6 +206,15 @@ def handle_delete_message(data):
         db.session.delete(message)
         db.session.commit()
         emit('message_deleted', {'message_id': message_id}, broadcast=True)
+
+# Gestionnaires d'erreurs personnalisés
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('404.html'), 404
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    return render_template('500.html'), 500
 
 # ============= LANCEMENT =============
 if __name__ == '__main__':
