@@ -1,0 +1,100 @@
+<!-- templates/profile.html -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Mon Profil • ChatApp</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Favicon & PWA Icons -->
+<link rel="apple-touch-icon" sizes="57x57" href="{{ url_for('static', filename='favicon/apple-icon-57x57.png') }}">
+<link rel="apple-touch-icon" sizes="60x60" href="{{ url_for('static', filename='favicon/apple-icon-60x60.png') }}">
+<link rel="apple-touch-icon" sizes="72x72" href="{{ url_for('static', filename='favicon/apple-icon-72x72.png') }}">
+<link rel="apple-touch-icon" sizes="76x76" href="{{ url_for('static', filename='favicon/apple-icon-76x76.png') }}">
+<link rel="apple-touch-icon" sizes="114x114" href="{{ url_for('static', filename='favicon/apple-icon-114x114.png') }}">
+<link rel="apple-touch-icon" sizes="120x120" href="{{ url_for('static', filename='favicon/apple-icon-120x120.png') }}">
+<link rel="apple-touch-icon" sizes="144x144" href="{{ url_for('static', filename='favicon/apple-icon-144x144.png') }}">
+<link rel="apple-touch-icon" sizes="152x152" href="{{ url_for('static', filename='favicon/apple-icon-152x152.png') }}">
+<link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='favicon/apple-icon-180x180.png') }}">
+<link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='favicon/android-icon-192x192.png') }}">
+<link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon/favicon-32x32.png') }}">
+<link rel="icon" type="image/png" sizes="96x96" href="{{ url_for('static', filename='favicon/favicon-96x96.png') }}">
+<link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='favicon/favicon-16x16.png') }}">
+<link rel="manifest" href="{{ url_for('static', filename='favicon/manifest.json') }}">
+<link rel="shortcut icon" href="{{ url_for('static', filename='favicon/favicon.ico') }}" type="image/x-icon">
+<meta name="msapplication-TileColor" content="#ffffff">
+<meta name="msapplication-TileImage" content="{{ url_for('static', filename='favicon/ms-icon-144x144.png') }}">
+<meta name="theme-color" content="#ffffff">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22 fill=%22%234361ee%22>💬</text></svg>">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>💬 ChatApp</h1>
+            <nav>
+                <a href="{{ url_for('index') }}">Accueil</a>
+                <a href="{{ url_for('profile') }}">Profil</a>
+                <a href="{{ url_for('logout') }}">🚪 Déconnexion</a>
+                {% if current_user.id == 1 %}
+                    <a href="{{ url_for('admin') }}" style="color: #f72585; font-weight: 600;">👑 Admin</a>
+                {% endif %}
+                <button id="theme-toggle" style="background: none; border: none; cursor: pointer; margin-left: 20px;">🌙</button>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container" style="max-width: 600px; margin: 50px auto;">
+        <h2>👤 Mon Profil</h2>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- 👇 ICI : Avatar + Nom -->
+        <div style="text-align: center; margin: 30px 0;">
+            <img src="{{ current_user.avatar }}" alt="Avatar" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid #4361ee;">
+            <h3 style="margin-top: 15px;">{{ current_user.username }}</h3>
+        </div>
+
+        <form method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-group">
+                <label for="avatar">Changer votre avatar (PNG, JPG, GIF)</label>
+                <input type="file" id="avatar" name="avatar" accept="image/*" required>
+            </div>
+            <button type="submit" class="btn">📤 Téléverser</button>
+        </form>
+    </div>
+
+    <style>
+        .alert {
+            padding: 12px;
+            margin: 20px 0;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .alert-danger { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    </style>
+    <script>
+    // Charger le thème sauvegardé
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+        document.body.classList.add('dark-mode');
+        document.getElementById('theme-toggle').innerText = '☀️';
+    }
+
+    // Toggle thème
+    document.getElementById('theme-toggle')?.addEventListener('click', function() {
+        document.body.classList.toggle('dark-mode');
+        const isDark = document.body.classList.contains('dark-mode');
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        this.innerText = isDark ? '☀️' : '🌙';
+    });
+</script>
+</body>
+</html>
