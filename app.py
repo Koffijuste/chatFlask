@@ -71,15 +71,31 @@ def register():
     if request.method == 'POST':
         username = request.form['username'].strip()
         password = request.form['password']
-        if User.query.filter_by(username=username).first():
-            flash('❌ Déjà pris.', 'danger')
+        confirm_password = request.form['confirm_password']
+
+        if password != confirm_password:
+            flash('❌ Les mots de passe ne correspondent pas.', 'danger')
             return render_template('register.html')
-        user = User(username=username)
-        user.password_hash = generate_password_hash(password)
-        db.session.add(user)
-        db.session.commit()
-        flash('✅ Créé ! Connectez-vous.', 'success')
-        return redirect(url_for('login'))
+
+        # ✅ Ajouter un try/except pour éviter l'erreur 500
+        try:
+            if User.query.filter_by(username=username).first():
+                flash('❌ Ce nom d’utilisateur est déjà pris.', 'danger')
+                return render_template('register.html')
+
+            new_user = User(username=username)
+            new_user.set_password(password)
+            db.session.add(new_user)
+            db.session.commit()
+
+            flash('✅ Compte créé avec succès ! Connectez-vous.', 'success')
+            return redirect(url_for('login'))
+        except Exception as e:
+            db.session.rollback()  # ← Important : annuler la transaction
+            flash('❌ Erreur lors de la création du compte. Veuillez réessayer.', 'danger')
+            print(f"Erreur inscription : {e}")  # Pour les logs
+            return render_template('register.html')
+
     return render_template('register.html')
 
 @app.route('/logout')
