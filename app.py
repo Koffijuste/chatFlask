@@ -1,9 +1,13 @@
-# app.py — VERSION MINIMALE DE SURVIE
 import os
-from flask import Flask, render_template, request, redirect, url_for, flash
-from flask_login import LoginManager, login_user, logout_user, current_user
-from models import db, User
-from werkzeug.security import generate_password_hash, check_password_hash
+import uuid
+
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from flask_socketio import SocketIO, emit
+from models import db, User, Message
+from werkzeug.security import check_password_hash
+from werkzeug.utils import secure_filename
+from flask_wtf.csrf import CSRFProtect
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'temp-survival-key-2025'

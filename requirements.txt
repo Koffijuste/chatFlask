@@ -1,7 +1,10 @@
 Flask
-Flask-SQLAlchemy
-Flask-Migrate
 Flask-SocketIO
+Flask-SQLAlchemy
+Flask-Login
+Flask-WTF
 gunicorn
 eventlet
+Werkzeug
+python-dotenv
 psycopg2-binary
