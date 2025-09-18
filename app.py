@@ -65,16 +65,23 @@ with app.app_context():
 # ============= ROUTES =============
 
 @app.route('/')
+def home():
+    if current_user.is_authenticated:
+        return redirect(url_for('chat'))
+    return render_template('home.html')
+
+@app.route('/students/chat')
 @login_required
-def index():
+def chat():
     try:
         messages = Message.query.order_by(Message.timestamp.desc()).limit(50).all()
         messages.reverse()
         return render_template('index.html', messages=messages, user=current_user)
     except Exception as e:
         flash('❌ Erreur lors du chargement des messages.', 'danger')
-        print(f"Erreur index : {e}")
+        print(f"Erreur chat : {e}")
         return render_template('home.html')
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
