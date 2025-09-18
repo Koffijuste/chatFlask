@@ -7,7 +7,6 @@ from flask_socketio import SocketIO, emit
 from models import db, User, Message
 from werkzeug.security import check_password_hash
 from werkzeug.utils import secure_filename
-from flask_wtf.csrf import CSRFProtect
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'temp-survival-key-2025'
