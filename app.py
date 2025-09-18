@@ -1,4 +1,4 @@
-# app.py — VERSION ULTIMEMENT CORRIGÉE POUR RENDER
+# app.py — VERSION ULTIMEMENT STABLE POUR RENDER
 import os
 import uuid
 
@@ -8,8 +8,7 @@ from flask_socketio import SocketIO, emit
 from models import db, User, Message
 from werkzeug.security import check_password_hash
 from werkzeug.utils import secure_filename
-from flask_wtf.csrf import CSRFProtect, validate_csrf
-from wtforms import ValidationError
+from flask_wtf.csrf import CSRFProtect
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'super-secret-chat-key-2025!'
@@ -26,13 +25,14 @@ if database_url and database_url.startswith("postgres://"):
 
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url or 'sqlite:///chat.db'
 
-# 👇 CONFIGURATION CRUCIALE : PAS d'options SQLite pour PostgreSQL
+# 👇 CONFIGURATION POSTGRESQL SANS CONFLIT
 if "postgresql" in (database_url or ""):
     app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
         "pool_pre_ping": True,
-        "pool_size": 10,
-        "max_overflow": 20,
-        "pool_recycle": 3600,
+        "pool_size": 5,
+        "max_overflow": 10,
+        "pool_recycle": 300,
+        "pool_timeout": 30,
     }
 else:
     app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
@@ -42,12 +42,12 @@ else:
         }
     }
 
-# ✅ Initialiser la protection CSRF
+# ✅ Initialiser CSRF
 csrf = CSRFProtect(app)
 
 # Initialiser les extensions
 db.init_app(app)
-socketio = SocketIO(app, cors_allowed_origins="*", engineio_logger=False, logger=False)
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
 
 # 🔑 Initialiser Flask-Login
 login_manager = LoginManager()
@@ -66,6 +66,15 @@ with app.app_context():
     db.create_all()
 
 # ============= ROUTES =============
+
+@app.route('/')
+def home():
+    try:
+        if current_user.is_authenticated:
+            return redirect(url_for('index'))
+    except:
+        pass
+    return render_template('home.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -108,16 +117,6 @@ def register():
 
     return render_template('register.html')
 
-@app.route('/')
-def home():
-    try:
-        if current_user.is_authenticated:
-            return redirect(url_for('index'))
-    except:
-        pass  # Ignore toute erreur liée à current_user
-    return render_template('home.html')
-
-
 @app.route('/logout')
 @login_required
 def logout():
@@ -130,84 +129,7 @@ def logout():
     flash('👋 Vous êtes déconnecté.', 'info')
     return redirect(url_for('login'))
 
-# ... (le reste de tes routes admin, profile, stats, etc. reste inchangé) ...
-
-# ============= SOCKET.IO =============
-
-@socketio.on('connect')
-def handle_connect():
-    if current_user.is_authenticated:
-        connected_users[current_user.id] = {
-            'sid': request.sid,
-            'username': current_user.username,
-            'avatar': current_user.avatar
-        }
-        emit('user_count', len(connected_users))
-        emit('update_online_users', get_online_users())
-
-def get_online_users():
-    return [
-        {
-            'id': uid,
-            'username': user['username'],
-            'avatar': user['avatar']
-        }
-        for uid, user in connected_users.items()
-    ]
-
-@socketio.on('disconnect')
-def handle_disconnect():
-    if current_user.is_authenticated and current_user.id in connected_users:
-        del connected_users[current_user.id]
-        emit('user_count', len(connected_users))
-        emit('update_online_users', get_online_users())
-
-@socketio.on('send_message')
-def handle_message(data):
-    if not current_user.is_authenticated:
-        return
-
-    message_text = data.get('message', '').strip()
-    if not message_text:
-        return
-
-    is_private = data.get('is_private', False)
-    recipient_id = data.get('recipient_id')
-
-    new_message = Message(
-        username=current_user.username,
-        message=message_text,
-        user_id=current_user.id,
-        is_private=is_private,
-        recipient_id=recipient_id if is_private else None
-    )
-    db.session.add(new_message)
-    db.session.commit()
-
-    message_data = new_message.to_dict()
-
-    if is_private and recipient_id:
-        recipient = connected_users.get(recipient_id)
-        if recipient:
-            emit('receive_message', message_data, room=recipient['sid'])
-        emit('receive_message', message_data, room=request.sid)
-    else:
-        emit('receive_message', message_data, broadcast=True)
-
-@socketio.on('delete_message')
-def handle_delete_message(data):
-    if not current_user.is_authenticated:
-        return
-
-    message_id = data.get('message_id')
-    message = Message.query.get(message_id)
-
-    if message and (message.user_id == current_user.id or current_user.id == 1):
-        db.session.delete(message)
-        db.session.commit()
-        emit('message_deleted', {'message_id': message_id}, broadcast=True)
-
-# Gestionnaires d'erreurs personnalisés
+# ============= GESTIONNAIRES D'ERREURS =============
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template('404.html'), 404
@@ -218,5 +140,5 @@ def internal_server_error(e):
 
 # ============= LANCEMENT =============
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 10000))  # ← Render utilise 10000 par défaut
+    port = int(os.environ.get('PORT', 10000))
     socketio.run(app, host='0.0.0.0', port=port, debug=False)
