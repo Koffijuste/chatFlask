@@ -1,6 +1,9 @@
 Flask
+Flask-SocketIO
 Flask-SQLAlchemy
 Flask-Login
-Flask-SocketIO
 Werkzeug
 gunicorn
+eventlet
+psycopg2-binary
+python-dotenv

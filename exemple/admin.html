@@ -130,17 +130,14 @@
     </div>
 
     <script>
-        function getCSRFToken() {
-    return document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-}
+        
 
 function confirmDeleteUser(userId, username) {
     if (confirm(`⚠️ Êtes-vous sûr de vouloir supprimer l'utilisateur "${username}" (ID: ${userId}) ?\n\nTous ses messages seront aussi supprimés.`)) {
         fetch(`/admin/delete_user/${userId}`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCSRFToken()  // ← Envoie le token dans les headers
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify({})  // Obligatoire pour POST
         })
@@ -165,8 +162,7 @@ function confirmDeleteUser(userId, username) {
         fetch(`/admin/delete_message/${messageId}`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCSRFToken()  // ← Envoie le token
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify({})
         })
