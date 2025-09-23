@@ -175,37 +175,40 @@ def admin():
         total_private_messages=total_private_messages
     )
 
-@app.route('/stats')
+@app.route('/chatting/stats')
 @login_required
 def stats():
-    from sqlalchemy import func
+    try:
+        from sqlalchemy import func
 
-    week_stats = db.session.query(
-        func.to_char(Message.timestamp, 'YYYY-MM-DD').label('day'),
-        func.count(Message.id).label('count')
-    ).group_by('day').order_by('day').limit(7).all()
+        week_stats = db.session.query(
+            func.to_char(Message.timestamp, '%Y-%m-%d').label('day'),
+            func.count(Message.id).label('count')
+        ).group_by('day').order_by('day').limit(7).all()
 
-    top_user = db.session.query(
-        User.username,
-        func.count(Message.id).label('msg_count')
-    ).join(
-        Message, Message.user_id == User.id
-    ).group_by(
-        User.id
-    ).order_by(
-        func.count(Message.id).desc()
-    ).first()
+        top_user = db.session.query(
+            User.username,
+            func.count(Message.id).label('msg_count')
+        ).join(
+            Message, Message.user_id == User.id
+        ).group_by(
+            User.id
+        ).order_by(
+            func.count(Message.id).desc()
+        ).first()
 
-    total_messages = Message.query.count()
-    total_users = User.query.count()
+        total_messages = Message.query.count()
+        total_users = User.query.count()
 
-    return render_template(
-        'stats.html',
-        week_stats=week_stats,
-        top_user=top_user,
-        total_messages=total_messages,
-        total_users=total_users
-    )
+        return render_template('stats.html',
+            week_stats=week_stats,
+            top_user=top_user,
+            total_messages=total_messages,
+            total_users=total_users)
+    except Exception as e:
+        flash('❌ Erreur lors du chargement des statistiques.', 'danger')
+        print(f"Erreur stats : {e}")
+        return redirect(url_for('chat'))
 
 
 # Gestionnaires d'erreurs
