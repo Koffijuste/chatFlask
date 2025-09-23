@@ -315,7 +315,7 @@ def create_admin():
         else:
             admin = User(username=admin_username)
             admin.set_password(admin_password)
-            admin.avatar = "https://via.placeholder.com/40/ff6b6b/ffffff?text=👑"
+            admin.avatar = "{{url_for('static', filename='img/1_c4746405.png')}}"
             db.session.add(admin)
             db.session.commit()
             print(f"✅ Compte admin créé : {admin_username} / {admin_password}")
@@ -335,7 +335,7 @@ def create_admin_with_id_1():
             # Créer l'admin avec ID=1
             admin = User(username="admin", id=1)
             admin.set_password("admin123")
-            admin.avatar = "https://via.placeholder.com/40/ff6b6b/ffffff?text=👑"
+            admin.avatar = "{{url_for('static', filename='img/1_c4746405.png')}}"
             db.session.add(admin)
             db.session.commit()
             print("✅ Admin (ID=1) créé avec succès.")
