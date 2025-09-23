@@ -149,6 +149,61 @@ def logout():
     flash('👋 Déconnecté.', 'info')
     return redirect(url_for('login'))
 
+
+@app.route('/admin')
+@login_required
+def admin():
+    if current_user.id != 1:  # Seul l'admin (ID=1) peut accéder
+        flash('🚫 Accès refusé. Réservé à l’administrateur.', 'danger')
+        return redirect(url_for('index'))
+
+    users = User.query.order_by(User.id).all()
+    messages = Message.query.order_by(Message.timestamp.desc()).limit(100).all()
+    total_users = User.query.count()
+    total_messages = Message.query.count()
+    total_private_messages = Message.query.filter_by(is_private=True).count()
+
+    return render_template(
+        'admin.html',
+        users=users,
+        messages=messages,
+        total_users=total_users,
+        total_messages=total_messages,
+        total_private_messages=total_private_messages
+    )
+
+@app.route('/stats')
+@login_required
+def stats():
+    from sqlalchemy import func
+
+    # Messages par jour (7 derniers jours)
+    week_stats = db.session.query(
+        func.strftime('%Y-%m-%d', Message.timestamp).label('day'),
+        func.count(Message.id).label('count')
+    ).group_by('day').order_by('day').limit(7).all()
+
+    # Utilisateur le plus actif
+    top_user = db.session.query(
+        User.username,
+        func.count(Message.id).label('msg_count')
+    ).join(
+        Message, Message.user_id == User.id
+    ).group_by(
+        User.id
+    ).order_by(
+        func.count(Message.id).desc()
+    ).first()
+
+    total_messages = Message.query.count()
+    total_users = User.query.count()
+
+    return render_template('stats.html',
+        week_stats=week_stats,
+        top_user=top_user,
+        total_messages=total_messages,
+        total_users=total_users)
+
 # Gestionnaires d'erreurs
 @app.errorhandler(404)
 def not_found(e):
