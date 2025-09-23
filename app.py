@@ -302,6 +302,48 @@ def handle_disconnect():
         emit('user_count', len(connected_users))
         emit('update_online_users', get_online_users())
 
+
+# Script pour créer un compte admin (à exécuter une seule fois)
+def create_admin():
+    with app.app_context():
+        admin_username = "cortana117"  # ← Change si tu veux
+        admin_password = "Bonheur78@@"  # ← Change en un mot de passe fort !
+
+        existing_admin = User.query.filter_by(username=admin_username).first()
+        if existing_admin:
+            print(f"✅ Admin '{admin_username}' existe déjà.")
+        else:
+            admin = User(username=admin_username)
+            admin.set_password(admin_password)
+            admin.avatar = "https://via.placeholder.com/40/ff6b6b/ffffff?text=👑"
+            db.session.add(admin)
+            db.session.commit()
+            print(f"✅ Compte admin créé : {admin_username} / {admin_password}")
+
+def create_admin_with_id_1():
+    with app.app_context():
+        # Supprimer l'utilisateur avec ID=1 s'il existe et n'est pas admin
+        existing_user = User.query.get(1)
+        if existing_user and existing_user.username != "admin":
+            print("⚠️ Suppression de l'utilisateur ID=1 (non admin)...")
+            db.session.delete(existing_user)
+            db.session.commit()
+
+        # Vérifier si admin existe déjà
+        admin = User.query.filter_by(username="admin").first()
+        if not admin:
+            # Créer l'admin avec ID=1
+            admin = User(username="admin", id=1)
+            admin.set_password("admin123")
+            admin.avatar = "https://via.placeholder.com/40/ff6b6b/ffffff?text=👑"
+            db.session.add(admin)
+            db.session.commit()
+            print("✅ Admin (ID=1) créé avec succès.")
+        else:
+            print("✅ Admin existe déjà.")
+
+
+
 # ============= LANCEMENT =============
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
