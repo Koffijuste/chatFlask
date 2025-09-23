@@ -93,14 +93,15 @@ def login():
             if user and check_password_hash(user.password_hash, password):
                 login_user(user)
                 flash('✅ Connexion réussie !', 'success')
-                return redirect(url_for('index'))  # ← ICI : 'index', pas 'home'
+                return redirect(url_for('index'))  # ← Redirige VERS LE CHAT
             else:
-                flash('❌ Mauvais login.', 'danger')
+                flash('❌ Nom d’utilisateur ou mot de passe incorrect.', 'danger')
+                return render_template('login.html')  # ← Rester sur login si échec
         except Exception as e:
             flash('❌ Erreur serveur. Réessayez.', 'danger')
             print(f"Erreur login : {e}")
-            return redirect(url_for('index'))  # ← ICI aussi
-    return render_template('login.html')
+            return render_template('login.html')  # ← Rester sur login en cas d’erreur
+    return render_template('login.html')  # ← Page de login pour GET
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
