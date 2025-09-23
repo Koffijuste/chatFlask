@@ -60,7 +60,6 @@
         </div>
 
         <form method="POST" enctype="multipart/form-data">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="form-group">
                 <label for="avatar">Changer votre avatar (PNG, JPG, GIF)</label>
                 <input type="file" id="avatar" name="avatar" accept="image/*" required>

@@ -57,7 +57,6 @@
             <div style="margin-top:20px;">
                 {% for day, count in week_stats %}
                     <div style="margin-bottom:15px;">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <div style="display:flex; justify-content:space-between; font-size:0.9rem; color:#666;">
                             <span>{{ day }}</span>
                             <span>{{ count }} messages</span>
