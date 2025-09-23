@@ -181,7 +181,7 @@ def stats():
     from sqlalchemy import func
 
     week_stats = db.session.query(
-        func.to_char('%Y-%m-%d', Message.timestamp).label('day'),
+        func.to_char(Message.timestamp, 'YYYY-MM-DD').label('day'),
         func.count(Message.id).label('count')
     ).group_by('day').order_by('day').limit(7).all()
 
@@ -199,11 +199,14 @@ def stats():
     total_messages = Message.query.count()
     total_users = User.query.count()
 
-    return render_template('stats.html',
+    return render_template(
+        'stats.html',
         week_stats=week_stats,
         top_user=top_user,
         total_messages=total_messages,
-        total_users=total_users)
+        total_users=total_users
+    )
+
 
 # Gestionnaires d'erreurs
 @app.errorhandler(404)
