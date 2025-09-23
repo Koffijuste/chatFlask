@@ -32,7 +32,7 @@
             <h1>💬 ChatApp — ADMIN</h1>
             <nav>
                 <span>Bonjour, <strong>{{ current_user.username }}</strong> !</span>
-                <a href="{{ url_for('index') }}">Accueil</a>
+                <a href="{{ url_for('chat') }}">Accueil</a>
                 <a href="{{ url_for('stats') }}">📊 Stats</a>
                 <a href="{{ url_for('profile') }}">Profil</a>
                 <a href="{{ url_for('logout') }}" style="color: var(--danger);">🚪 Déconnexion</a>
