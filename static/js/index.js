@@ -1,4 +1,4 @@
-    const socket = io();
+    const socket = io({ transports: ['polling'] });
     const userId = {{ current_user.id }};
     const isAdmin = userId === 1;
 

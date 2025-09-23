@@ -12,7 +12,7 @@ from werkzeug.utils import secure_filename
 
 
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder="static", template_folder="templates")
 app.config['SECRET_KEY'] = 'super-secret-chat-key-2025!'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'static/uploads/avatars'
@@ -48,7 +48,8 @@ else:
 
 # Initialiser les extensions
 db.init_app(app)
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
+socketio = SocketIO(app, async_mode="eventlet", cors_allowed_origins="*")
+
 
 # Flask-Login
 login_manager = LoginManager()
@@ -180,7 +181,7 @@ def stats():
     from sqlalchemy import func
 
     week_stats = db.session.query(
-        func.strftime('%Y-%m-%d', Message.timestamp).label('day'),
+        func.to_char('%Y-%m-%d', Message.timestamp).label('day'),
         func.count(Message.id).label('count')
     ).group_by('day').order_by('day').limit(7).all()
 
