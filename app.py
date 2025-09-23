@@ -1,5 +1,6 @@
 # app.py — VERSION ULTIME POUR RENDER + EVENTLET + POSTGRESQL
 import os
+import uuid
 import eventlet
 eventlet.monkey_patch()  # ← DOIT ÊTRE AU TOUT DÉBUT
 
@@ -136,9 +137,31 @@ def register():
 
     return render_template('register.html')
 
-@app.route('/profile')
+@app.route('/students/profile', methodes=['GET', 'POST'])
 @login_required
 def profile():
+    if request.method == 'POST':
+        # Gestion de l'upload d'avatar
+        if 'avatar' not in request.files:
+            flash('❌ Aucun fichier sélectionné', 'danger')
+            return redirect(request.url)
+
+        file = request.files['avatar']
+        if file.filename == '':
+            flash('❌ Aucun fichier sélectionné', 'danger')
+            return redirect(request.url)
+
+        if file and '.' in file.filename and file.filename.rsplit('.', 1)[1].lower() in {'png', 'jpg', 'jpeg', 'gif'}:
+            filename = secure_filename(f"{current_user.id}_{uuid.uuid4().hex[:8]}.{file.filename.rsplit('.', 1)[1].lower()}")
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(filepath)
+
+            current_user.avatar = f"/static/uploads/avatars/{filename}"
+            db.session.commit()
+            flash('✅ Avatar mis à jour !', 'success')
+            return redirect(url_for('profile'))
+
+    # Pour la méthode GET → afficher le formulaire
     return render_template('profile.html', user=current_user)
 
 @app.route('/logout')
