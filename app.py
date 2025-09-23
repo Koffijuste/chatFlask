@@ -93,7 +93,7 @@ def login():
             if user and check_password_hash(user.password_hash, password):
                 login_user(user)
                 flash('✅ Connexion réussie !', 'success')
-                return redirect(url_for('index'))  # ← Redirige VERS LE CHAT
+                return redirect(url_for('chat'))  # ← Redirige VERS LE CHAT
             else:
                 flash('❌ Nom d’utilisateur ou mot de passe incorrect.', 'danger')
                 return render_template('login.html')  # ← Rester sur login si échec
