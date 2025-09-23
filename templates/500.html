@@ -1,11 +1,70 @@
+<!-- templates/500.html -->
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
-    <title>Erreur 500</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>500 - Erreur serveur • UTA Chat</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        body {
+            background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+            color: white;
+            font-family: 'Segoe UI', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            text-align: center;
+            padding: 20px;
+        }
+        .error-container {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            padding: 40px;
+            border-radius: 20px;
+            max-width: 500px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .error-code {
+            font-size: 6rem;
+            font-weight: 800;
+            margin: 0 0 20px;
+            background: linear-gradient(to right, #ff9a9e, #fecfef);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .error-message {
+            font-size: 1.3rem;
+            margin-bottom: 30px;
+            opacity: 0.9;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 30px;
+            background: white;
+            color: #ff416c;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+        }
+    </style>
 </head>
 <body>
-    <h1>Erreur serveur</h1>
-    <p>Une erreur est survenue. Veuillez réessayer plus tard.</p>
-    <a href="/">Retour à l'accueil</a>
+    <div class="error-container">
+        <div class="error-code">500</div>
+        <h1 class="error-message">Oups ! Erreur serveur</h1>
+        <p>Quelque chose s'est mal passé. Notre équipe technique est déjà sur le coup.</p>
+        <a href="{{ url_for('index') }}" class="btn">🏠 Retour au chat</a>
+    </div>
 </body>
 </html>

@@ -9,11 +9,15 @@ from flask_socketio import SocketIO, emit
 from models import db, User, Message
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
+from flask_wtf.csrf import CSRFProtect
+
+
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'super-secret-chat-key-2025!'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'static/uploads/avatars'
+csrf = CSRFProtect(app)
 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
@@ -147,7 +151,7 @@ def logout():
         socketio.emit('user_count', len(connected_users))
     logout_user()
     flash('👋 Déconnecté.', 'info')
-    return redirect(url_for('login'))
+    return redirect(url_for('home'))
 
 
 @app.route('/admin')
@@ -155,7 +159,7 @@ def logout():
 def admin():
     if current_user.id != 1:  # Seul l'admin (ID=1) peut accéder
         flash('🚫 Accès refusé. Réservé à l’administrateur.', 'danger')
-        return redirect(url_for('index'))
+        return redirect(url_for('chat'))
 
     users = User.query.order_by(User.id).all()
     messages = Message.query.order_by(Message.timestamp.desc()).limit(100).all()
@@ -177,13 +181,11 @@ def admin():
 def stats():
     from sqlalchemy import func
 
-    # Messages par jour (7 derniers jours)
     week_stats = db.session.query(
         func.strftime('%Y-%m-%d', Message.timestamp).label('day'),
         func.count(Message.id).label('count')
     ).group_by('day').order_by('day').limit(7).all()
 
-    # Utilisateur le plus actif
     top_user = db.session.query(
         User.username,
         func.count(Message.id).label('msg_count')
