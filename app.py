@@ -137,7 +137,7 @@ def register():
 
     return render_template('register.html')
 
-@app.route('/students/profile', methodes=['GET', 'POST'])
+@app.route('/students/profile', methods=['GET', 'POST'])
 @login_required
 def profile():
     if request.method == 'POST':
