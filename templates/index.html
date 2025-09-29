@@ -303,7 +303,7 @@
             <li><a href="{{ url_for('chat') }}"><i>🏠</i> Accueil</a></li>
             <li><a href="{{ url_for('profile') }}"><i>🖼️</i> Profil</a></li>
             <li><a href="{{ url_for('stats') }}"><i>📊</i> Stats</a></li>
-            {% if current_user.id == 1 %}
+            {% if current_user.number in ['0507707886','05 07 70 78 86', '05-07-70-78-86', '+2250507707886', '+225 05 07 70 78 86', '+225 05-07-70-78-86'] %}
             <li><a href="{{ url_for('admin') }}"><i>👑</i> Admin</a></li>
             {% endif %}
             <li><a href="{{ url_for('logout') }}"><i>🚪</i> Déconnexion</a></li>

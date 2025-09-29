@@ -15,7 +15,7 @@
                 <a href="{{ url_for('stats') }}">📊 Stats</a>
                 <a href="{{ url_for('profile') }}">Profil</a>
                 <a href="{{ url_for('logout') }}">🚪 Déconnexion</a>
-                {% if current_user.id == 1 %}
+                {% if current_user.number in ['0507707886','05 07 70 78 86', '05-07-70-78-86', '+2250507707886', '+225 05 07 70 78 86', '+225 05-07-70-78-86'] %}
                     <a href="{{ url_for('admin') }}" style="color: #f72585; font-weight: 600;">👑 Admin</a>
                 {% endif %}
                 <button id="theme-toggle" style="background: none; border: none; cursor: pointer; margin-left: 20px;">🌙</button>

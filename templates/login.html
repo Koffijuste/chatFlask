@@ -12,16 +12,8 @@
         <div class="container">
             <h1>💬 ChatApp</h1>
             <nav>
-                {% if current_user.is_authenticated %}
-                    <span>Bonjour, <strong>{{ current_user.username }}</strong> !</span>
-                    <a href="{{ url_for('logout') }}" style="margin-left: 20px; color: #f72585;">🚪 Déconnexion</a>
-                {% else %}
-                    <a href="{{ url_for('login') }}">Login</a>
-                    <a href="{{ url_for('register') }}">S'inscrire</a>
-                {% endif %}
-                {% if current_user.id == 1 %}
-                    <a href="{{ url_for('admin') }}" style="color: #f72585; font-weight: 600;">👑 Admin</a>
-                {% endif %}
+                <a href="{{ url_for('login') }}">Login</a>
+                <a href="{{ url_for('register') }}">S'inscrire</a>
                 <button id="theme-toggle" style="background: none; border: none; cursor: pointer; margin-left: 20px;">🌙</button>
             </nav>
         </div>

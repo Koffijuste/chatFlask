@@ -1,5 +1,6 @@
 # app.py — VERSION ULTIME POUR RENDER + EVENTLET + POSTGRESQL
 import os
+import re
 import uuid
 import eventlet
 eventlet.monkey_patch()  # ← DOIT ÊTRE AU TOUT DÉBUT
@@ -111,19 +112,39 @@ def login():
 def register():
     if request.method == 'POST':
         username = request.form['username'].strip()
+        number = request.form['number'].strip()
         password = request.form['password']
         confirm_password = request.form['confirm_password']
 
         if password != confirm_password:
             flash('❌ Les mots de passe ne correspondent pas.', 'danger')
+            
+            if len(password) < 6:
+                flash('❌ Le mot de passe doit contenir au moins 6 caractères.', 'danger')
+                return render_template('register.html')
+            return render_template('register.html')
+        
+        number = number.replace(" ", "").replace("-", "") # Supprimer espaces et tirets
+        regex = r'^\+?\d{10,15}$' or r'^\d{10,15}$'  # Regex pour valider le numéro de téléphone
+
+        if not re.match(regex, number):
+            flash('❌ Le numéro de téléphone est invalide.', 'danger')
+            return render_template('register.html')
+
+        if number == "":
+            flash('❌ Le numéro ne peut pas être vide.', 'danger')
+            if len(number) < 10 or len(number) > 13:
+                flash('❌ Le numéro doit contenir entre 10 et 13 caractères.', 'danger')
+                return render_template('register.html')
+
             return render_template('register.html')
 
         try:
-            if User.query.filter_by(username=username).first():
-                flash('❌ Ce nom d’utilisateur est déjà pris.', 'danger')
+            if User.query.filter_by(username=username, number=number).first():
+                flash('❌ Ce nom d’utilisateur est déjà pris ou numéro occupé.', 'danger')
                 return render_template('register.html')
 
-            new_user = User(username=username)
+            new_user = User(username=username, number=number)
             new_user.set_password(password)
             db.session.add(new_user)
             db.session.commit()

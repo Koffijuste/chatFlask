@@ -15,9 +15,6 @@
             <nav>
                 <a href="{{ url_for('login') }}">Login</a>
                 <a href="{{ url_for('register') }}">S'inscrire</a>
-                {% if current_user.id == 1 %}
-                    <a href="{{ url_for('admin') }}" style="color: #f72585; font-weight: 600;">👑 Admin</a>
-                {% endif %}
                 <button id="theme-toggle" style="background: none; border: none; cursor: pointer; margin-left: 20px;">🌙</button>
             </nav>
         </div>
@@ -45,6 +42,10 @@
             <div class="form-group">
                 <label for="confirm_password">Confirmer le mot de passe</label>
                 <input type="password" id="confirm_password" name="confirm_password" required>
+            </div>
+            <div class="form-group">
+                <label for="number">Numéro de téléphone</label>
+                <input type="text" id="number" name="number" required pattern="^\+?[0-9\s\-]{10,12}$" title="Entrez un numéro de téléphone valide (10-12 chiffres, peut inclure +, espaces ou -)">
             </div>
             <button type="submit" class="btn">S'inscrire</button>
         </form>
