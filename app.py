@@ -1,13 +1,15 @@
 # app.py — VERSION ULTIME POUR RENDER + EVENTLET + POSTGRESQL
+import eventlet
+eventlet.monkey_patch()
+
 import os
 import re
 import uuid
-import eventlet
-from flask_sqlalchemy import SQLAlchemy
-eventlet.monkey_patch()  # ← DOIT ÊTRE AU TOUT DÉBUT
+
 
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from flask_migrate import Migrate
 from flask_socketio import SocketIO, emit
 from models import db, User, Message
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -21,6 +23,8 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'static/uploads/avatars'
 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+migrate = Migrate(app, db)
 
 # Récupérer DATABASE_URL
 database_url = os.environ.get('DATABASE_URL')
