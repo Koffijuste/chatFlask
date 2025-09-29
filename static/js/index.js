@@ -37,22 +37,24 @@ const socket = io();
             msgDiv.className = 'message';
             msgDiv.setAttribute('data-message-id', data.id);
 
-            msgDiv.innerHTML = `
-                <div class="message-content">
-                    <img src="${data.avatar || 'https://via.placeholder.com/40'}" 
-                         alt="Avatar" class="message-avatar">
-                    <div class="message-body">
-                        <div class="message-header">
-                            <span class="message-username">${data.username}</span>
-                            <span class="message-timestamp">${data.timestamp}</span>
-                        </div>
-                        <div class="message-text">${data.message}</div>
-                    </div>
-                </div>
-            `;
+            let content = `<strong>${data.username} :</strong> `;
+    
+    if (data.file_url) {
+        const ext = data.file_url.split('.').pop().toLowerCase();
+        if (['png', 'jpg', 'jpeg', 'gif'].includes(ext)) {
+            content += `<br><img src="${data.file_url}" style="max-width:300px; border-radius:8px; margin-top:8px;">`;
+        } else {
+            content += `<br><a href="${data.file_url}" target="_blank">📎 ${data.file_url.split('/').pop()}</a>`;
+        }
+    }
+    if (data.message) {
+        content += `<br>${data.message}`;
+    }
+    content += `<br><small>${data.timestamp}</small>`;
 
-            messagesDiv.appendChild(msgDiv);
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            msgDiv.innerHTML = content;
+        messagesDiv.appendChild(msgDiv);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
         });
 
         socket.on('user_count', function(count) {

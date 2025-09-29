@@ -215,14 +215,21 @@
             background: white;
             border-top: 1px solid #eee;
             gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
         }
 
-        #chat-form input {
+        #chat-form input[type="text"] {
             flex: 1;
+            min-width: 200px;
             padding: 14px;
             border: 2px solid #e0e0e0;
             border-radius: 12px;
             font-size: 1rem;
+        }
+
+        #chat-form input[type="file"] {
+            display: none;
         }
 
         #chat-form button {
@@ -234,6 +241,12 @@
             font-weight: 600;
             cursor: pointer;
             min-width: 80px;
+        }
+
+        #file-preview {
+            margin-top: 10px;
+            max-width: 200px;
+            display: none;
         }
 
         /* Responsive */
@@ -265,6 +278,15 @@
 
             header h1 {
                 font-size: 1.2rem;
+            }
+
+            #chat-form {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            #chat-form input[type="text"] {
+                width: 100%;
             }
         }
 
@@ -331,7 +353,17 @@
                                     <span class="message-username">{{ msg.username }}</span>
                                     <span class="message-timestamp">{{ msg.timestamp }}</span>
                                 </div>
-                                <div class="message-text">{{ msg.message }}</div>
+                                {% if msg.file_url %}
+                                    {% set ext = msg.file_url.split('.')[-1].lower() %}
+                                    {% if ext in ['png', 'jpg', 'jpeg', 'gif'] %}
+                                        <img src="{{ msg.file_url }}" style="max-width:300px; border-radius:8px; margin-top:8px;">
+                                    {% else %}
+                                        <a href="{{ msg.file_url }}" target="_blank">📎 {{ msg.file_url.split('/')[-1] }}</a>
+                                    {% endif %}
+                                {% endif %}
+                                {% if msg.message %}
+                                    <div class="message-text">{{ msg.message }}</div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -339,9 +371,154 @@
             </div>
             <div id="chat-form">
                 <input type="text" id="message" placeholder="Tapez votre message..." autocomplete="off">
-                <button onclick="sendMessage()">➤</button>
+                <input type="file" id="file" accept="image/*,.pdf,.doc,.txt" onchange="previewFile(this)">
+                <button type="button" onclick="document.getElementById('file').click()">📎</button>
+                <button type="button" onclick="sendMessage()">➤</button>
+                <div id="file-preview"></div>
             </div>
         </div>
     </div>
+
+    <script>
+        let pendingFile = null;
+
+        function previewFile(input) {
+            const preview = document.getElementById('file-preview');
+            const file = input.files[0];
+            if (file) {
+                pendingFile = file;
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        preview.innerHTML = `<img src="${e.target.result}" style="max-width:100%; border-radius:8px;">`;
+                        preview.style.display = 'block';
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    preview.innerHTML = `📄 ${file.name}`;
+                    preview.style.display = 'block';
+                }
+            } else {
+                pendingFile = null;
+                preview.style.display = 'none';
+            }
+        }
+
+        function sendMessage() {
+            const messageText = document.getElementById('message').value.trim();
+            const file = pendingFile;
+
+            if (!messageText && !file) return;
+
+            if (file) {
+                const formData = new FormData();
+                formData.append('file', file);
+                if (messageText) formData.append('message', messageText);
+
+                fetch('/upload_file', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        socket.emit('send_message', {
+                            message: messageText || '',
+                            file_url: data.file_url
+                        });
+                        resetForm();
+                    } else {
+                        alert('❌ Erreur upload : ' + data.error);
+                    }
+                })
+                .catch(err => {
+                    alert('❌ Erreur réseau');
+                    console.error(err);
+                });
+            } else {
+                socket.emit('send_message', { message: messageText });
+                resetForm();
+            }
+        }
+
+        function resetForm() {
+            document.getElementById('message').value = '';
+            pendingFile = null;
+            document.getElementById('file-preview').style.display = 'none';
+        }
+
+        // 🔌 Socket.IO
+        const socket = io();
+        const userId = {{ current_user.id }};
+
+        socket.on('receive_message', function(data) {
+            const messagesDiv = document.getElementById('chat-messages');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'message';
+            msgDiv.setAttribute('data-message-id', data.id);
+
+            let content = `
+                <div class="message-content">
+                    <img src="${data.avatar || 'https://via.placeholder.com/40'}" 
+                         alt="Avatar" class="message-avatar">
+                    <div class="message-body">
+                        <div class="message-header">
+                            <span class="message-username">${data.username}</span>
+                            <span class="message-timestamp">${data.timestamp}</span>
+                        </div>
+            `;
+
+            if (data.file_url) {
+                const ext = data.file_url.split('.').pop().toLowerCase();
+                if (['png', 'jpg', 'jpeg', 'gif'].includes(ext)) {
+                    content += `<img src="${data.file_url}" style="max-width:300px; border-radius:8px; margin-top:8px;">`;
+                } else {
+                    content += `<a href="${data.file_url}" target="_blank">📎 ${data.file_url.split('/').pop()}</a>`;
+                }
+            }
+            if (data.message) {
+                content += `<div class="message-text">${data.message}</div>`;
+            }
+
+            content += `
+                    </div>
+                </div>
+            `;
+
+            msgDiv.innerHTML = content;
+            messagesDiv.appendChild(msgDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        });
+
+        socket.on('user_count', function(count) {
+            document.getElementById('count').innerText = count;
+            document.getElementById('user-count').innerText = count;
+        });
+
+        // 📱 Toggle sidebar
+        document.getElementById('menu-toggle').addEventListener('click', function() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('main-content');
+            sidebar.classList.toggle('active');
+            mainContent.classList.toggle('sidebar-open');
+        });
+
+        // Fermer sidebar au clic extérieur (mobile)
+        document.addEventListener('click', function(e) {
+            const sidebar = document.getElementById('sidebar');
+            const toggle = document.getElementById('menu-toggle');
+            if (window.innerWidth <= 768 && sidebar.classList.contains('active')) {
+                if (!sidebar.contains(e.target) && e.target !== toggle) {
+                    sidebar.classList.remove('active');
+                    document.getElementById('main-content').classList.remove('sidebar-open');
+                }
+            }
+        });
+
+        // ⌨️ Envoyer avec Entrée
+        document.getElementById('message').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') sendMessage();
+        });
+    </script>
 </body>
 </html>
