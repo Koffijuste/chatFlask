@@ -30,6 +30,7 @@ class Message(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), nullable=False)
     message = db.Column(db.String(500), nullable=False)
+    file_url = db.Column(db.String(300), nullable=True)  # ← Ajouté
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     is_private = db.Column(db.Boolean, default=False)
     recipient_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
@@ -44,6 +45,7 @@ class Message(db.Model):
             'message': self.message,
             'timestamp': self.timestamp.strftime('%H:%M:%S'),
             'user_id': self.user_id,
+            'file_url': self.file_url,  # ← Ajouté
             'avatar': user.avatar if user else 'https://via.placeholder.com/40',
             'is_private': self.is_private,
             'recipient_id': self.recipient_id,

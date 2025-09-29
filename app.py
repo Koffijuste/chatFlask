@@ -24,7 +24,6 @@ app.config['UPLOAD_FOLDER'] = 'static/uploads/avatars'
 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-migrate = Migrate(app, db)
 
 # Récupérer DATABASE_URL
 database_url = os.environ.get('DATABASE_URL')
@@ -63,10 +62,14 @@ def shutdown_session(exception=None):
         db.session.rollback()
     db.session.remove()
 
+# Limite la taille des requêtes (10 Mo max)
+app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024
+
 # Flask-Login
 login_manager = LoginManager()
 login_manager.login_view = 'login'
 login_manager.init_app(app)
+migrate = Migrate(app, db)
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -236,10 +239,11 @@ def admin():
 @login_required
 def stats():
     try:
-        from sqlalchemy import func
+        from sqlalchemy import func, cast, Date
 
+        # ✅ Version compatible PostgreSQL
         week_stats = db.session.query(
-            func.to_char(Message.timestamp, '%Y-%m-%d').label('day'),
+            cast(Message.timestamp, Date).label('day'),
             func.count(Message.id).label('count')
         ).group_by('day').order_by('day').limit(7).all()
 
@@ -263,12 +267,47 @@ def stats():
             total_messages=total_messages,
             total_users=total_users)
     except Exception as e:
-        flash('❌ Erreur lors du chargement des statistiques.', 'danger')
         db.session.rollback()
         flash('❌ Erreur lors du chargement des stats.', 'danger')
         print(f"Erreur stats : {e}")
         return redirect(url_for('chat'))
 
+
+@app.route('/upload_file', methods=['POST'])
+@login_required
+def upload_file():
+    try:
+        if 'file' not in request.files:
+            return jsonify({'success': False, 'error': 'Aucun fichier'}), 400
+
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'success': False, 'error': 'Fichier vide'}), 400
+
+        # Sécurité : types autorisés
+        allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'pdf', 'doc', 'docx', 'txt'}
+        ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+        if ext not in allowed_extensions:
+            return jsonify({'success': False, 'error': 'Type de fichier non autorisé'}), 400
+
+        # Sécurité : taille max (10 Mo)
+        file.seek(0, 2)  # Va à la fin
+        size = file.tell()
+        file.seek(0)      # Retour au début
+        if size > 10 * 1024 * 1024:
+            return jsonify({'success': False, 'error': 'Fichier trop volumineux (>10 Mo)'}), 400
+
+        # Sauvegarde
+        filename = secure_filename(f"{current_user.id}_{uuid.uuid4().hex[:8]}.{ext}")
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
+
+        file_url = f"/static/uploads/avatars/{filename}"
+        return jsonify({'success': True, 'file_url': file_url})
+
+    except Exception as e:
+        print(f"Erreur upload : {e}")
+        return jsonify({'success': False, 'error': 'Erreur serveur'}), 500
 
 # Gestionnaires d'erreurs
 @app.errorhandler(404)
@@ -306,14 +345,17 @@ def get_online_users():
 def handle_message(data):
     if not current_user.is_authenticated:
         return
-
+    
     message_text = data.get('message', '').strip()
+    file_url = data.get('file_url')
+
     if not message_text:
         return
 
     new_message = Message(
         username=current_user.username,
         message=message_text,
+        file_url=file_url,
         user_id=current_user.id,
         is_private=False
     )
@@ -351,7 +393,7 @@ def create_admin():
         else:
             admin = User(username=admin_username)
             admin.set_password(admin_password)
-            admin.avatar = "{{url_for('static', filename='img/1_c4746405.png')}}"
+            admin.avatar = "/static/img/1_c4746405.png"
             db.session.add(admin)
             db.session.commit()
             print(f"✅ Compte admin créé : {admin_username} / {admin_password}")
