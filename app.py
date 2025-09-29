@@ -3,6 +3,7 @@ import os
 import re
 import uuid
 import eventlet
+from flask_sqlalchemy import SQLAlchemy
 eventlet.monkey_patch()  # ← DOIT ÊTRE AU TOUT DÉBUT
 
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
@@ -52,6 +53,11 @@ else:
 db.init_app(app)
 socketio = SocketIO(app, async_mode="eventlet", cors_allowed_origins="*")
 
+@app.teardown_appcontext
+def shutdown_session(exception=None):
+    if exception:
+        db.session.rollback()
+    db.session.remove()
 
 # Flask-Login
 login_manager = LoginManager()
@@ -83,6 +89,8 @@ def chat():
         messages.reverse()
         return render_template('index.html', messages=messages, user=current_user)
     except Exception as e:
+        db.session.rollback()
+        flash('❌ Erreur serveur. Réessayez.', 'danger')
         flash('❌ Erreur lors du chargement des messages.', 'danger')
         print(f"Erreur chat : {e}")
         return render_template('home.html')
@@ -103,6 +111,7 @@ def login():
                 flash('❌ Nom d’utilisateur ou mot de passe incorrect.', 'danger')
                 return render_template('login.html')  # ← Rester sur login si échec
         except Exception as e:
+            db.session.rollback()
             flash('❌ Erreur serveur. Réessayez.', 'danger')
             print(f"Erreur login : {e}")
             return render_template('login.html')  # ← Rester sur login en cas d’erreur
@@ -251,6 +260,8 @@ def stats():
             total_users=total_users)
     except Exception as e:
         flash('❌ Erreur lors du chargement des statistiques.', 'danger')
+        db.session.rollback()
+        flash('❌ Erreur lors du chargement des stats.', 'danger')
         print(f"Erreur stats : {e}")
         return redirect(url_for('chat'))
 
