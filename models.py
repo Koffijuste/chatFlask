@@ -1,4 +1,5 @@
 # models.py
+from flask import url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from datetime import datetime
@@ -46,7 +47,7 @@ class Message(db.Model):
             'timestamp': self.timestamp.strftime('%H:%M:%S'),
             'user_id': self.user_id,
             'file_url': self.file_url,  # ← Ajouté
-            'avatar': user.avatar if user else 'https://via.placeholder.com/40',
+            'avatar': user.avatar if user else url_for('static', filename='uploads/avatars/default.png'),
             'is_private': self.is_private,
             'recipient_id': self.recipient_id,
             'recipient_username': recipient.username if recipient else None

@@ -345,7 +345,7 @@
                 {% for msg in messages %}
                     <div class="message" data-message-id="{{ msg.id }}">
                         <div class="message-content">
-                            <img src="{{ msg.avatar or 'static/uploads/avatars/default.png' }}" 
+                            <img src="{{ msg.avatar or url_for('static', filename='uploads/avatars/default.png') }}"
                                  alt="Avatar" class="message-avatar">
                             <div class="message-body">
                                 <div class="message-header">
@@ -380,6 +380,7 @@
 
     <script>
         let pendingFile = null;
+        const defaultAvatar = "/static/uploads/avatars/default.png";
 
         function previewFile(input) {
             const preview = document.getElementById('file-preview');
@@ -458,7 +459,7 @@
 
             let content = `
                 <div class="message-content">
-                    <img src="${data.avatar || 'static/uploads/avatars/default.png'}" 
+                    <img src="${data.avatar || defaultAvatar}" 
                          alt="Avatar" class="message-avatar">
                     <div class="message-body">
                         <div class="message-header">
