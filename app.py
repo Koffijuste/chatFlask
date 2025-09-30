@@ -15,6 +15,7 @@ from flask_socketio import SocketIO, emit
 from models import db, User, Message
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
+from flask_wtf.csrf import CSRFProtect
 
 
 
@@ -22,6 +23,9 @@ app = Flask(__name__, static_folder="static", template_folder="templates")
 app.config['SECRET_KEY'] = 'super-secret-chat-key-2025!'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'static/uploads/avatars'
+
+# ✅ Activer la protection CSRF
+csrf = CSRFProtect(app)
 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
