@@ -345,7 +345,7 @@
                 {% for msg in messages %}
                     <div class="message" data-message-id="{{ msg.id }}">
                         <div class="message-content">
-                            <img src="{{ msg.avatar or 'https://via.placeholder.com/40' }}" 
+                            <img src="{{ msg.avatar or 'static/uploads/avatars/default.png' }}" 
                                  alt="Avatar" class="message-avatar">
                             <div class="message-body">
                                 <div class="message-header">
@@ -458,7 +458,7 @@
 
             let content = `
                 <div class="message-content">
-                    <img src="${data.avatar || 'https://via.placeholder.com/40'}" 
+                    <img src="${data.avatar || 'static/uploads/avatars/default.png'}" 
                          alt="Avatar" class="message-avatar">
                     <div class="message-body">
                         <div class="message-header">

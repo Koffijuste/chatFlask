@@ -364,12 +364,16 @@ def handle_message(data):
     db.session.add(new_message)
     db.session.commit()
 
+    # ✅ Récupération de l'avatar de l'utilisateur connecté
+    avatar_url = current_user.avatar or 'static/uploads/avatars/default.png'
+
     message_data = {
         'id': new_message.id,
         'username': new_message.username,
         'message': new_message.message,
         'timestamp': new_message.timestamp.strftime('%H:%M:%S'),
-        'user_id': new_message.user_id
+        'user_id': new_message.user_id,
+        'avatar': avatar_url  # 👈 On ajoute ici l'avatar
     }
 
     emit('receive_message', message_data, broadcast=True)
